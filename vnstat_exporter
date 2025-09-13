@@ -1,0 +1,8 @@
+#!/bin/ksh
+
+daemon="/usr/local/bin/vnstat_exporter --daemon"
+daemon_user="_vnstat"
+
+. /etc/rc.d/rc.subr
+
+rc_cmd $1
