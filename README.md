@@ -40,7 +40,7 @@ start the script, either
       --daemon             Daemonize app on non-systemd systems
     ```
  * Or through a service
-   * systemd service can be found [here]()
+   * systemd service can be found [here](https://github.com/joaomnmoreira/vnstat-exporter/blob/main/ansible/templates/vnstat_exporter.service.j2) 
    * openbsd service (included in this repo  `doas rcctl start vnstat_exporter`
  
 Add the vnstat exporter to your prometheus configuration
