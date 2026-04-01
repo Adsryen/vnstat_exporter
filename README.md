@@ -44,7 +44,7 @@ services:
     container_name: vnstat-exporter
     restart: always
     ports:
-      - "19209:9469"
+      - "9469:9469"
     volumes:
       - /var/lib/vnstat:/var/lib/vnstat:ro
       - /etc/localtime:/etc/localtime:ro
