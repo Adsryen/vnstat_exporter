@@ -1,63 +1,96 @@
-# vnstat export for Prometheus
+# vnstat Prometheus Exporter
 
-Based on: https://github.com/joaomnmoreira/vnstat-exporter and https://grafana.com/grafana/dashboards/22548
+基于 [joaomnmoreira/vnstat-exporter](https://github.com/joaomnmoreira/vnstat-exporter) 与[rosco-pc/vnstat_exporter](https://github.com/rosco-pc/vnstat_exporter)修改，Grafana 面板参考 [Dashboard #22548](https://grafana.com/grafana/dashboards/22548)。
 
-Changes
- * Add --daemon option to run the script as a deamon for those systems whithout systemd
- * When started in daemon mode, limit the messages send to the log (the original is very chatty, one message every interval)
- * move all print() to log.error()
- * When started without daemon mode it will behave like the original script
+[English Version](README_EN.md)
 
-## requirements
- * python-daemon
- * promethuse-client
+## 主要改动
 
-Depending on your OS you either install a package or setup a _venv_ and run
+- 新增 `--billing-day` 参数，支持自定义计费周期起始日（1-28），适配不同服务商的账单周期
+- 新增 `vnstat_traffic_billing_cycle` 指标，按计费周期累计流量（而非自然月）
+- 新增 `--daemon` 参数，支持在无 systemd 的系统上以守护进程方式运行
+- 守护进程模式下减少日志输出频率
+- 修复容器环境下 `/dev/log` 不存在导致启动报错的问题
+- 将 `print()` 统一改为 `logger.error()`
+
+## 暴露的指标
+
+| 指标名 | 说明 |
+|--------|------|
+| `vnstat_traffic_5min` | 最近 5 分钟流量 |
+| `vnstat_traffic_hourly` | 小时流量 |
+| `vnstat_traffic_daily` | 日流量 |
+| `vnstat_traffic_monthly` | 自然月流量 |
+| `vnstat_traffic_yearly` | 年流量 |
+| `vnstat_traffic_total` | 累计总流量 |
+| `vnstat_traffic_billing_cycle` | 当前计费周期内的累计流量 |
+
+所有指标均带有 `interface`（网卡名）和 `direction`（`rx`/`tx`）标签。
+
+## 依赖
+
 ```
 pip install -r requirements.txt
 ```
-## Installation
-If you have not down so yet instal and setup [prometheus](https://prometheus.io/docs/prometheus/latest/installation/) and [grafana](https://grafana.com/docs/grafana/latest/setup-grafana/)
 
-copy the script
+依赖项：`prometheus-client`、`python-daemon`
 
-(optional) change the owner & group to a priviliged user (I used `_vnstat`, the user defined for running vnstat as a service)
+## Docker 部署（推荐）
 
-copy the script to a sensible place on your system, e.g. `/usr/local/bin`
-
-start the script, either
- * manually vnstat_export ..
-    ```
-     ./vnstat_exporter --help                                                                                                                          
-    usage: vnstat_exporter [-h] [--port PORT] [--interval INTERVAL] [--daemon]
-    
-    VNStat Prometheus Exporter
-    
-    options:
-      -h, --help           show this help message and exit
-      --port PORT          Port to expose metrics on (default: 9469)
-      --interval INTERVAL  Metrics update interval in seconds (default: 60)
-      --daemon             Daemonize app on non-systemd systems
-    ```
- * Or through a service
-   * systemd service can be found [here](https://github.com/joaomnmoreira/vnstat-exporter/blob/main/ansible/templates/vnstat_exporter.service.j2) 
-   * openbsd service (included in this repo  `doas rcctl start vnstat_exporter`
- 
-Add the vnstat exporter to your prometheus configuration
-
+```yaml
+services:
+  vnstat-exporter:
+    image: adsryen/vnstat_exporter:latest
+    container_name: vnstat-exporter
+    restart: always
+    ports:
+      - "19209:9469"
+    volumes:
+      - /var/lib/vnstat:/var/lib/vnstat:ro
+      - /etc/localtime:/etc/localtime:ro
+    command: ["--port", "9469", "--interval", "60", "--billing-day", "28"]
 ```
+
+`--billing-day` 改为你的服务器实际计费日即可。
+
+## 直接运行
+
+```bash
+# 查看帮助
+python3 vnstat_exporter.py --help
+
+# 默认启动（每月1日为计费周期起始）
+python3 vnstat_exporter.py
+
+# 自定义端口、采集间隔、计费日
+python3 vnstat_exporter.py --port 9469 --interval 60 --billing-day 28
+
+# 守护进程模式
+python3 vnstat_exporter.py --billing-day 28 --daemon
+```
+
+## 参数说明
+
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| `--port` | 9469 | 监听端口 |
+| `--interval` | 60 | 采集间隔（秒） |
+| `--billing-day` | 1 | 每月计费周期起始日（1-28） |
+| `--daemon` | - | 以守护进程方式运行 |
+
+## Prometheus 配置
+
+```yaml
 scrape_configs:
-  ...
-  # vnstat exporter
   - job_name: "vnstat"
     static_configs:
-      - targets: ["sfp:9469"] 
-
+      - targets: ["your-server-ip:19209"]
+        labels:
+          instance: your-server-ip
+          remark: 服务商名称
 ```
-and restart/reload prometheus
 
-load the grafana dashboard above to your grafana instance
+## 前置条件
 
-change reular expression in the `interface` variable to reflect the interfaces you're monitoting with vnstat
-
-and Bob's your uncle
+- 宿主机已安装并运行 vnstat 服务：`systemctl enable vnstat --now`
+- 如需自定义计费周期，编辑 `/etc/vnstat.conf` 设置 `MonthRotate 28`（与 `--billing-day` 保持一致）
