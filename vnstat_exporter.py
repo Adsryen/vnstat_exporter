@@ -33,7 +33,6 @@ from prometheus_client import start_http_server, Gauge
 import time
 import argparse
 import logging
-import logging.handlers
 import sys
 import daemon
 from datetime import date, timedelta
@@ -42,16 +41,6 @@ from datetime import date, timedelta
 logger = logging.getLogger('vnstat_exporter')
 logger.setLevel(logging.INFO)
 
-# Add syslog handler
-try:
-    syslog_handler = logging.handlers.SysLogHandler(address='/dev/log')
-    syslog_formatter = logging.Formatter('%(name)s: %(message)s')
-    syslog_handler.setFormatter(syslog_formatter)
-    logger.addHandler(syslog_handler)
-except Exception:
-    pass  # /dev/log 在容器内可能不存在
-
-# Add journal handler (stdout/stderr)
 stream_handler = logging.StreamHandler(sys.stdout)
 stream_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 stream_handler.setFormatter(stream_formatter)
@@ -91,7 +80,7 @@ def get_vnstat_data(interface=None):
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         return json.loads(result.stdout)
     except subprocess.CalledProcessError as e:
-        logger.error(f"Error running vnstat: {e}")
+        logger.error(f"Error running vnstat: {e}, stderr: {e.stderr.strip()}")
         return None
     except json.JSONDecodeError as e:
         logger.error(f"Error parsing vnstat output: {e}")
@@ -210,8 +199,7 @@ if __name__ == '__main__':
     if get_vnstat_data():
         logger.info("Successfully called vnstat")
     else:
-        logger.error("Failed to call vnstat")
-        sys.exit(1)
+        logger.warning("Failed to call vnstat, will keep retrying...")
 
     if args.daemon:
         logger.setLevel(logging.WARNING)
