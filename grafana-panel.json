@@ -1,0 +1,263 @@
+{
+  "__inputs": [],
+  "__elements": {},
+  "__requires": [
+    {"type": "grafana", "id": "grafana", "name": "Grafana", "version": "10.4.2"},
+    {"type": "datasource", "id": "prometheus", "name": "Prometheus", "version": "1.0.0"},
+    {"type": "panel", "id": "gauge", "name": "Gauge", "version": ""},
+    {"type": "panel", "id": "stat", "name": "Stat", "version": ""},
+    {"type": "panel", "id": "table", "name": "Table", "version": ""},
+    {"type": "panel", "id": "timeseries", "name": "Time series", "version": ""}
+  ],
+  "annotations": {"list": [{"builtIn": 1, "datasource": {"type": "grafana", "uid": "-- Grafana --"}, "enable": true, "hide": true, "iconColor": "rgba(0, 211, 255, 1)", "name": "Annotations & Alerts", "type": "dashboard"}]},
+  "description": "vnstat 流量监控面板",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": "prometheus",
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "orange", "value": 1099511627776}, {"color": "red", "value": 5497558138880}]}, "unit": "bytes"}, "overrides": []},
+      "gridPos": {"h": 6, "w": 5, "x": 0, "y": 0},
+      "id": 3,
+      "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "horizontal", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "showPercentChange": false, "textMode": "auto", "wideLayout": true},
+      "pluginVersion": "10.4.2",
+      "targets": [
+        {"datasource": "prometheus", "editorMode": "code", "expr": "vnstat_traffic_monthly{instance=~\"$instance\", interface=~\"$interface\", direction=\"rx\"}", "hide": false, "instant": false, "legendFormat": "下行", "range": true, "refId": "A"},
+        {"datasource": "prometheus", "editorMode": "code", "expr": "vnstat_traffic_monthly{instance=~\"$instance\", interface=~\"$interface\", direction=\"tx\"}", "hide": false, "instant": false, "legendFormat": "上行", "range": true, "refId": "B"}
+      ],
+      "title": "本月流量",
+      "type": "stat"
+    },
+    {
+      "datasource": "prometheus",
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "orange", "value": 1099511627776}, {"color": "red", "value": 5497558138880}]}, "unit": "bytes"}, "overrides": []},
+      "gridPos": {"h": 6, "w": 5, "x": 5, "y": 0},
+      "id": 10,
+      "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "horizontal", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "showPercentChange": false, "textMode": "auto", "wideLayout": true},
+      "pluginVersion": "10.4.2",
+      "targets": [
+        {"datasource": "prometheus", "editorMode": "code", "expr": "vnstat_traffic_billing_cycle{instance=~\"$instance\", interface=~\"$interface\", direction=\"rx\"}", "hide": false, "instant": false, "legendFormat": "下行", "range": true, "refId": "A"},
+        {"datasource": "prometheus", "editorMode": "code", "expr": "vnstat_traffic_billing_cycle{instance=~\"$instance\", interface=~\"$interface\", direction=\"tx\"}", "hide": false, "instant": false, "legendFormat": "上行", "range": true, "refId": "B"}
+      ],
+      "title": "计费周期流量",
+      "type": "stat"
+    },
+    {
+      "datasource": "prometheus",
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "orange", "value": 32212254720}, {"color": "red", "value": 53687091200}]}, "unit": "bytes"}, "overrides": []},
+      "gridPos": {"h": 6, "w": 5, "x": 10, "y": 0},
+      "id": 12,
+      "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "horizontal", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto", "wideLayout": true},
+      "pluginVersion": "10.4.2",
+      "targets": [
+        {"datasource": "prometheus", "editorMode": "code", "expr": "vnstat_traffic_top_daily{instance=~\"$instance\", interface=~\"$interface\", direction=\"rx\"}", "instant": false, "legendFormat": "最高下行", "range": true, "refId": "A"},
+        {"datasource": "prometheus", "editorMode": "code", "expr": "vnstat_traffic_top_daily{instance=~\"$instance\", interface=~\"$interface\", direction=\"tx\"}", "instant": false, "legendFormat": "最高上行", "range": true, "refId": "B"}
+      ],
+      "title": "历史单日峰值",
+      "type": "stat"
+    },
+    {
+      "datasource": "prometheus",
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]}, "unit": "short"}, "overrides": []},
+      "gridPos": {"h": 6, "w": 3, "x": 15, "y": 0},
+      "id": 11,
+      "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "value_and_name"},
+      "pluginVersion": "10.4.2",
+      "targets": [{"datasource": "prometheus", "editorMode": "code", "expr": "vnstat_billing_day{instance=~\"$instance\"}", "instant": true, "legendFormat": "计费重置日（每月）", "refId": "A"}],
+      "title": "计费周期重置日",
+      "type": "stat"
+    },
+    {
+      "datasource": "prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [{"options": {"0": {"text": "未设置限额"}}, "type": "value"}],
+          "max": 100, "min": 0,
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "orange", "value": 70}, {"color": "red", "value": 90}]},
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 6, "w": 6, "x": 18, "y": 0},
+      "id": 13,
+      "options": {"minVizHeight": 50, "minVizWidth": 75, "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "showThresholdLabels": false, "showThresholdMarkers": true},
+      "pluginVersion": "10.4.2",
+      "targets": [
+        {
+          "datasource": "prometheus",
+          "editorMode": "code",
+          "expr": "(sum(vnstat_traffic_billing_cycle{instance=~\"$instance\", direction=\"rx\"}) + sum(vnstat_traffic_billing_cycle{instance=~\"$instance\", direction=\"tx\"})) / ((vnstat_traffic_limit_bytes{instance=~\"$instance\"} > 0) or vector(1099511627776)) * 100",
+          "instant": true,
+          "legendFormat": "计费周期流量使用率",
+          "refId": "A"
+        }
+      ],
+      "title": "计费周期使用率",
+      "type": "gauge"
+    },
+    {
+      "datasource": "prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 10, "gradientMode": "none", "hideFrom": {"legend": false, "tooltip": false, "viz": false}, "insertNulls": false, "lineInterpolation": "linear", "lineWidth": 2, "pointSize": 5, "scaleDistribution": {"type": "linear"}, "showPoints": "never", "spanNulls": false, "stacking": {"group": "A", "mode": "none"}, "thresholdsStyle": {"mode": "off"}},
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "unit": "binBps"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 6},
+      "id": 1,
+      "options": {"legend": {"calcs": ["mean", "max", "last"], "displayMode": "table", "placement": "bottom", "showLegend": true}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "targets": [{"datasource": "prometheus", "editorMode": "code", "exemplar": false, "expr": "vnstat_traffic_5min{instance=~\"$instance\", interface=~\"$interface\"} / 300", "instant": false, "interval": "", "legendFormat": "{{interface}} - {{direction}}", "range": true, "refId": "A"}],
+      "title": "当前网络流量（5分钟平均速率）",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 10, "gradientMode": "none", "hideFrom": {"legend": false, "tooltip": false, "viz": false}, "insertNulls": false, "lineInterpolation": "linear", "lineWidth": 2, "pointSize": 5, "scaleDistribution": {"type": "linear"}, "showPoints": "never", "spanNulls": false, "stacking": {"group": "A", "mode": "none"}, "thresholdsStyle": {"mode": "off"}},
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 14},
+      "id": 5,
+      "options": {"legend": {"calcs": ["mean", "max", "last"], "displayMode": "table", "placement": "bottom", "showLegend": true}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "targets": [{"datasource": "prometheus", "editorMode": "code", "expr": "vnstat_traffic_hourly{instance=~\"$instance\", interface=~\"$interface\"}", "instant": false, "legendFormat": "{{interface}} - {{direction}}", "range": true, "refId": "A"}],
+      "title": "每小时网络流量",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 10, "gradientMode": "none", "hideFrom": {"legend": false, "tooltip": false, "viz": false}, "insertNulls": false, "lineInterpolation": "linear", "lineWidth": 2, "pointSize": 5, "scaleDistribution": {"type": "linear"}, "showPoints": "never", "spanNulls": false, "stacking": {"group": "A", "mode": "none"}, "thresholdsStyle": {"mode": "off"}},
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 10, "w": 16, "x": 0, "y": 22},
+      "id": 2,
+      "options": {"legend": {"calcs": ["mean", "max", "last"], "displayMode": "table", "placement": "bottom", "showLegend": true}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "targets": [{"datasource": "prometheus", "editorMode": "code", "expr": "vnstat_traffic_daily{instance=~\"$instance\", interface=~\"$interface\"}", "instant": false, "legendFormat": "{{interface}} - {{direction}}", "range": true, "refId": "A"}],
+      "title": "每日流量趋势",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "custom": {"align": "auto", "cellOptions": {"type": "auto"}, "filterable": true, "inspect": false},
+          "mappings": [],
+          "thresholds": {"mode": "percentage", "steps": [{"color": "green", "value": null}, {"color": "orange", "value": 70}, {"color": "red", "value": 90}]},
+          "unit": "bytes"
+        },
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "流量"}, "properties": [{"id": "custom.displayMode", "value": "color-background"}]}
+        ]
+      },
+      "gridPos": {"h": 10, "w": 8, "x": 16, "y": 22},
+      "id": 4,
+      "options": {
+        "cellHeight": "md",
+        "footer": {"countRows": false, "enablePagination": false, "fields": "", "reducer": ["sum"], "show": true},
+        "showHeader": true,
+        "sortBy": [{"desc": false, "displayName": "日期"}]
+      },
+      "pluginVersion": "10.4.2",
+      "targets": [{"datasource": "prometheus", "editorMode": "code", "exemplar": false, "expr": "vnstat_traffic_daily{instance=~\"$instance\", interface=~\"$interface\"}", "format": "table", "instant": true, "legendFormat": "", "refId": "A"}],
+      "title": "每日流量明细",
+      "transformations": [
+        {"id": "organize", "options": {
+          "excludeByName": {"Time": true, "__name__": true, "job": true, "instance": true, "remark": true},
+          "renameByName": {"interface": "网卡", "direction": "方向", "date": "日期", "Value": "流量"},
+          "indexByName": {"date": 0, "interface": 1, "direction": 2, "Value": 3}
+        }}
+      ],
+      "type": "table"
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["vnstat", "prometheus"],
+  "templating": {
+    "list": [
+      {
+        "allValue": null,
+        "current": {},
+        "datasource": "prometheus",
+        "definition": "label_values(vnstat_traffic_5min, instance)",
+        "hide": 0,
+        "includeAll": false,
+        "label": "主机",
+        "multi": false,
+        "name": "instance",
+        "options": [],
+        "query": "label_values(vnstat_traffic_5min, instance)",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "allValue": null,
+        "current": {},
+        "datasource": "prometheus",
+        "definition": "label_values(vnstat_traffic_5min{instance=~\"$instance\"}, interface)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "网卡",
+        "multi": true,
+        "name": "interface",
+        "options": [],
+        "query": "label_values(vnstat_traffic_5min{instance=~\"$instance\"}, interface)",
+        "refresh": 1,
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {"selected": true, "text": "28", "value": "28"},
+        "hide": 2,
+        "includeAll": false,
+        "label": "计费重置日",
+        "multi": false,
+        "name": "billing_day",
+        "options": [
+          {"selected": false, "text": "1",  "value": "1"},
+          {"selected": false, "text": "5",  "value": "5"},
+          {"selected": false, "text": "10", "value": "10"},
+          {"selected": false, "text": "15", "value": "15"},
+          {"selected": false, "text": "20", "value": "20"},
+          {"selected": false, "text": "25", "value": "25"},
+          {"selected": true,  "text": "28", "value": "28"}
+        ],
+        "query": "1,5,10,15,20,25,28",
+        "skipUrlSync": false,
+        "type": "custom"
+      }
+    ]
+  },
+  "time": {"from": "now-24h", "to": "now"},
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "vnstat 流量监控",
+  "uid": "fe77itqt6eccgd",
+  "version": 24,
+  "weekStart": "",
+  "gnetId": 22548
+}
