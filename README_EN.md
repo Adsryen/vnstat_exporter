@@ -35,7 +35,21 @@ pip install -r requirements.txt
 
 Required packages: `prometheus-client`, `python-daemon`
 
-## Docker Deployment (Recommended)
+## Deployment
+
+The exporter supports three deployment scenarios, differing in how vnstat data is accessed:
+
+| Scenario | vnstat | exporter | `--vnstat-url` required |
+|----------|--------|----------|------------------------|
+| All-container | vergoh/vnstat container | Docker | Yes (inter-container HTTP) |
+| All-binary | Host vnstatd | Host binary | No |
+| Mixed | Host vnstatd | Docker | No (mount `/var/lib/vnstat`) |
+
+Without `--vnstat-url`, the exporter calls the local `vnstat --json` command directly.
+
+## Docker Deployment
+
+### Mixed mode (host vnstat + Docker exporter, recommended)
 
 ```yaml
 services:
@@ -44,16 +58,63 @@ services:
     container_name: vnstat-exporter
     restart: always
     ports:
-      - "19209:9469"
+      - "19469:19469"
     volumes:
       - /var/lib/vnstat:/var/lib/vnstat:ro
       - /etc/localtime:/etc/localtime:ro
-    command: ["--port", "9469", "--interval", "60", "--billing-day", "28"]
+    command: ["--port", "19469", "--interval", "60", "--billing-day", "28"]
+```
+
+### All-container mode (vnstat also runs in a container)
+
+```yaml
+services:
+  vnstat:
+    image: vergoh/vnstat:latest
+    container_name: vnstat
+    network_mode: host
+    volumes:
+      - /var/lib/vnstat:/var/lib/vnstat
+
+  vnstat-exporter:
+    image: adsryen/vnstat_exporter:latest
+    container_name: vnstat-exporter
+    restart: always
+    ports:
+      - "19469:19469"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+    command: ["--port", "19469", "--interval", "60", "--billing-day", "28", "--vnstat-url", "http://vnstat:8685"]
 ```
 
 Set `--billing-day` to your server's actual billing start day.
 
-## Running Directly
+## Binary Deployment
+
+### Install
+
+Download the binary for your architecture from [Releases](../../releases):
+
+```bash
+sudo cp vnstat_exporter-linux-amd64 /usr/local/bin/vnstat_exporter
+sudo chmod +x /usr/local/bin/vnstat_exporter
+```
+
+### systemd service
+
+```bash
+sudo cp vnstat_exporter.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now vnstat_exporter
+```
+
+Default `ExecStart` (no `--vnstat-url`, uses local `vnstat` command):
+
+```ini
+ExecStart=/usr/local/bin/vnstat_exporter --port 19469 --interval 60 --billing-day 1
+```
+
+### Running Python script directly
 
 ```bash
 # Show help
@@ -63,7 +124,7 @@ python3 vnstat_exporter.py --help
 python3 vnstat_exporter.py
 
 # Custom port, interval, and billing day
-python3 vnstat_exporter.py --port 9469 --interval 60 --billing-day 28
+python3 vnstat_exporter.py --port 19469 --interval 60 --billing-day 28
 
 # Daemon mode
 python3 vnstat_exporter.py --billing-day 28 --daemon
@@ -73,9 +134,10 @@ python3 vnstat_exporter.py --billing-day 28 --daemon
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `--port` | 9469 | Listening port |
+| `--port` | 19469 | Listening port |
 | `--interval` | 60 | Collection interval (seconds) |
 | `--billing-day` | 1 | Billing cycle start day of month (1-28) |
+| `--vnstat-url` | - | vnstat HTTP API URL, only needed for all-container mode |
 | `--daemon` | - | Run as a daemon process |
 
 ## Prometheus Configuration
@@ -84,7 +146,7 @@ python3 vnstat_exporter.py --billing-day 28 --daemon
 scrape_configs:
   - job_name: "vnstat"
     static_configs:
-      - targets: ["your-server-ip:19209"]
+      - targets: ["your-server-ip:19469"]
         labels:
           instance: your-server-ip
           remark: your-isp-name
