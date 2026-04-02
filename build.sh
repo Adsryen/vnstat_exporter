@@ -3,22 +3,47 @@ set -e
 
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 IMAGE_NAME="adsryen/vnstat_exporter:latest"
-VNSTAT_VERSION="1.15"
-TARBALL="vnstat-${VNSTAT_VERSION}.tar.gz"
 
-echo ">>> 检查 ${TARBALL} ..."
-if [ ! -f "${SCRIPT_DIR}/${TARBALL}" ]; then
-    echo ">>> 下载 vnstat ${VNSTAT_VERSION} ..."
-    wget -q "https://humdi.net/vnstat/${TARBALL}" -O "${SCRIPT_DIR}/${TARBALL}"
-    echo ">>> 下载完成"
-else
-    echo ">>> 已存在，跳过下载"
-fi
+build_docker() {
+    echo ">>> 构建 Docker 镜像 ${IMAGE_NAME} ..."
+    docker build --no-cache -t "${IMAGE_NAME}" "${SCRIPT_DIR}"
+    echo ">>> 推送镜像 ${IMAGE_NAME} ..."
+    docker push "${IMAGE_NAME}"
+    echo ">>> Docker 镜像构建完成"
+}
 
-echo ">>> 构建镜像 ${IMAGE_NAME} ..."
-docker build --no-cache -t "${IMAGE_NAME}" "${SCRIPT_DIR}"
+build_binary() {
+    echo ">>> 用 PyInstaller 打包二进制..."
+    cd "${SCRIPT_DIR}"
 
-echo ">>> 推送镜像 ${IMAGE_NAME} ..."
-docker push "${IMAGE_NAME}"
+    # 检查 pyinstaller
+    if ! command -v pyinstaller &>/dev/null; then
+        echo ">>> 安装 PyInstaller..."
+        pip3 install pyinstaller prometheus-client
+    fi
 
-echo ">>> 完成"
+    pyinstaller --onefile --name vnstat_exporter vnstat_exporter.py
+    echo ">>> 二进制输出: ${SCRIPT_DIR}/dist/vnstat_exporter"
+}
+
+show_help() {
+    echo "用法: $0 [命令]"
+    echo ""
+    echo "命令:"
+    echo "  docker    构建并推送 Docker 镜像（默认）"
+    echo "  binary    用 PyInstaller 打包本地二进制"
+    echo "  all       同时执行 docker 和 binary"
+    echo "  -h        显示帮助"
+}
+
+case "${1:-docker}" in
+    docker)  build_docker ;;
+    binary)  build_binary ;;
+    all)     build_docker; build_binary ;;
+    -h|--help) show_help ;;
+    *)
+        echo "未知命令: $1"
+        show_help
+        exit 1
+        ;;
+esac
