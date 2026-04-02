@@ -234,8 +234,8 @@ class vnstat_metrics:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='VNStat Prometheus Exporter')
-    parser.add_argument('--port', type=int, default=9469,
-                        help='Port to expose metrics on (default: 9469)')
+    parser.add_argument('--port', type=int, default=19469,
+                        help='Port to expose metrics on (default: 19469)')
     parser.add_argument('--interval', type=int, default=60,
                         help='Metrics update interval in seconds (default: 60)')
     parser.add_argument('--billing-day', type=int, default=0,
