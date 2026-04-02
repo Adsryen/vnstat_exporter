@@ -1,0 +1,15 @@
+[Unit]
+Description=VNStat Prometheus Exporter
+After=network.target vnstat.service
+Wants=vnstat.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/vnstat_exporter --port 19469 --interval 60 --billing-day 1
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

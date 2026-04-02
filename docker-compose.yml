@@ -1,0 +1,28 @@
+services:
+  # vergoh/vnstat 官方容器：负责收集流量数据，提供 JSON 接口
+  vnstat:
+    image: vergoh/vnstat:2.13
+    container_name: vnstat
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - HTTP_PORT=8685
+      - EXCLUDE_PATTERN=^docker|^veth|^br-|^lxc
+    volumes:
+      - /var/lib/vnstat:/var/lib/vnstat
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+
+  # 自定义 exporter：从 vnstat HTTP 接口读数据，支持自定义计费日
+  vnstat-exporter:
+    image: adsryen/vnstat_exporter:latest
+    container_name: vnstat-exporter
+    restart: always
+    network_mode: host
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+    # --billing-day 按各服务器实际计费日修改，0 表示不启用
+    # --traffic-limit 流量限额 GB，0 表示不限制
+    command: ["--port", "19469", "--interval", "10", "--billing-day", "28", "--traffic-limit", "600", "--vnstat-url", "http://localhost:8685"]
+    depends_on:
+      - vnstat
