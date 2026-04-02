@@ -46,7 +46,8 @@ import time
 import argparse
 import logging
 import sys
-import daemon
+import os
+import signal
 from datetime import date, timedelta
 
 # Set up logging
@@ -273,9 +274,23 @@ if __name__ == '__main__':
         logger.warning("vnstat 数据源连接失败，将持续重试...")
 
     if args.daemon:
+        # 用标准库实现守护进程，避免 python-daemon 依赖
+        pid = os.fork()
+        if pid > 0:
+            sys.exit(0)
+        os.setsid()
+        pid = os.fork()
+        if pid > 0:
+            sys.exit(0)
+        sys.stdout.flush()
+        sys.stderr.flush()
+        with open(os.devnull, 'r') as f:
+            os.dup2(f.fileno(), sys.stdin.fileno())
+        with open(os.devnull, 'a+') as f:
+            os.dup2(f.fileno(), sys.stdout.fileno())
+            os.dup2(f.fileno(), sys.stderr.fileno())
         logger.setLevel(logging.WARNING)
         logger.removeHandler(stream_handler)
-        with daemon.DaemonContext():
-            vnstat_metrics().run()
+        vnstat_metrics().run()
     else:
         vnstat_metrics().run()

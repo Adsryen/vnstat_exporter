@@ -9,6 +9,8 @@ jobs:
   build:
     name: Build ${{ matrix.arch }}
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     strategy:
       matrix:
         include:
@@ -29,7 +31,7 @@ jobs:
           docker run --rm --platform ${{ matrix.platform }} \
             -v "$PWD:/work" -w /work \
             python:3.11-slim \
-            bash -c "pip install pyinstaller prometheus-client python-daemon && \
+            bash -c "pip install pyinstaller prometheus-client && \
                      pyinstaller --onefile --name vnstat_exporter vnstat_exporter.py && \
                      mv dist/vnstat_exporter dist/vnstat_exporter-linux-${{ matrix.arch }}"
 
