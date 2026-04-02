@@ -14,10 +14,8 @@ jobs:
         include:
           - arch: amd64
             platform: linux/amd64
-            pyinstaller_target: x86_64-unknown-linux-gnu
           - arch: arm64
             platform: linux/arm64
-            pyinstaller_target: aarch64-unknown-linux-gnu
 
     steps:
       - name: 检出代码
@@ -27,14 +25,13 @@ jobs:
         uses: docker/setup-qemu-action@v3
 
       - name: 构建二进制 (${{ matrix.arch }})
-        uses: docker/run-action@v1
-        with:
-          image: python:3.11-slim
-          platform: ${{ matrix.platform }}
-          run: |
-            pip install pyinstaller prometheus-client
-            pyinstaller --onefile --name vnstat_exporter vnstat_exporter.py
-            mv dist/vnstat_exporter dist/vnstat_exporter-linux-${{ matrix.arch }}
+        run: |
+          docker run --rm --platform ${{ matrix.platform }} \
+            -v "$PWD:/work" -w /work \
+            python:3.11-slim \
+            bash -c "pip install pyinstaller prometheus-client python-daemon && \
+                     pyinstaller --onefile --name vnstat_exporter vnstat_exporter.py && \
+                     mv dist/vnstat_exporter dist/vnstat_exporter-linux-${{ matrix.arch }}"
 
       - name: 上传构建产物
         uses: actions/upload-artifact@v4
