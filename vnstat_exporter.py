@@ -113,7 +113,7 @@ def get_vnstat_data(interface=None):
         cmd.extend(['-i', interface])
 
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, check=True)
         return json.loads(result.stdout)
     except subprocess.CalledProcessError as e:
         logger.error(f"Error running vnstat: {e}, stderr: {e.stderr.strip()}")
