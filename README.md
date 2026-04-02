@@ -35,7 +35,21 @@ pip install -r requirements.txt
 
 依赖项：`prometheus-client`、`python-daemon`
 
-## Docker 部署（推荐）
+## 部署方式
+
+exporter 支持三种部署场景，核心区别在于 vnstat 数据的获取方式：
+
+| 场景 | vnstat | exporter | 是否需要 `--vnstat-url` |
+|------|--------|----------|------------------------|
+| 全容器 | vergoh/vnstat 容器 | Docker | 需要（容器间 HTTP 通信） |
+| 全二进制 | 宿主机 vnstatd | 宿主机二进制 | 不需要 |
+| 混合 | 宿主机 vnstatd | Docker | 不需要（挂载 `/var/lib/vnstat`） |
+
+不带 `--vnstat-url` 时，exporter 直接调用本地 `vnstat --json` 命令读取数据。
+
+## Docker 部署
+
+### 混合模式（宿主机 vnstat + Docker exporter，推荐）
 
 ```yaml
 services:
@@ -44,16 +58,63 @@ services:
     container_name: vnstat-exporter
     restart: always
     ports:
-      - "9469:9469"
+      - "19469:9469"
     volumes:
       - /var/lib/vnstat:/var/lib/vnstat:ro
       - /etc/localtime:/etc/localtime:ro
     command: ["--port", "9469", "--interval", "60", "--billing-day", "28"]
 ```
 
+### 全容器模式（vnstat 也跑在容器里）
+
+```yaml
+services:
+  vnstat:
+    image: vergoh/vnstat:latest
+    container_name: vnstat
+    network_mode: host
+    volumes:
+      - /var/lib/vnstat:/var/lib/vnstat
+
+  vnstat-exporter:
+    image: adsryen/vnstat_exporter:latest
+    container_name: vnstat-exporter
+    restart: always
+    ports:
+      - "19469:9469"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+    command: ["--port", "9469", "--interval", "60", "--billing-day", "28", "--vnstat-url", "http://vnstat:8685"]
+```
+
 `--billing-day` 改为你的服务器实际计费日即可。
 
-## 直接运行
+## 二进制部署
+
+### 安装
+
+从 [Releases](../../releases) 下载对应架构的二进制文件：
+
+```bash
+sudo cp vnstat_exporter-linux-amd64 /usr/local/bin/vnstat_exporter
+sudo chmod +x /usr/local/bin/vnstat_exporter
+```
+
+### systemd service
+
+```bash
+sudo cp vnstat_exporter.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now vnstat_exporter
+```
+
+service 默认配置（`ExecStart` 不带 `--vnstat-url`，直接调用本地 `vnstat` 命令）：
+
+```ini
+ExecStart=/usr/local/bin/vnstat_exporter --port 19469 --interval 60 --billing-day 1
+```
+
+### 直接运行 Python 脚本
 
 ```bash
 # 查看帮助
@@ -63,7 +124,7 @@ python3 vnstat_exporter.py --help
 python3 vnstat_exporter.py
 
 # 自定义端口、采集间隔、计费日
-python3 vnstat_exporter.py --port 9469 --interval 60 --billing-day 28
+python3 vnstat_exporter.py --port 19469 --interval 60 --billing-day 28
 
 # 守护进程模式
 python3 vnstat_exporter.py --billing-day 28 --daemon
@@ -73,9 +134,10 @@ python3 vnstat_exporter.py --billing-day 28 --daemon
 
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
-| `--port` | 9469 | 监听端口 |
+| `--port` | 19469 | 监听端口 |
 | `--interval` | 60 | 采集间隔（秒） |
 | `--billing-day` | 1 | 每月计费周期起始日（1-28） |
+| `--vnstat-url` | - | vnstat HTTP API 地址，仅全容器模式需要 |
 | `--daemon` | - | 以守护进程方式运行 |
 
 ## Prometheus 配置
@@ -84,7 +146,7 @@ python3 vnstat_exporter.py --billing-day 28 --daemon
 scrape_configs:
   - job_name: "vnstat"
     static_configs:
-      - targets: ["your-server-ip:19209"]
+      - targets: ["your-server-ip:19469"]
         labels:
           instance: your-server-ip
           remark: 服务商名称
