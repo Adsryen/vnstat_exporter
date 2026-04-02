@@ -21,18 +21,16 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 在 CentOS 7 容器内构建二进制 (${{ matrix.arch }})
+      - name: 在 manylinux2014 容器内构建二进制 (${{ matrix.arch }})
         run: |
           docker run --rm \
             -v "${{ github.workspace }}:/build" \
-            centos:7 \
+            quay.io/pypa/manylinux2014_${{ matrix.arch }} \
             bash -c "
               set -e
-              yum install -y epel-release
-              yum install -y python3 python3-pip
-              pip3 install pyinstaller prometheus-client
+              /opt/python/cp311-cp311/bin/pip install pyinstaller prometheus-client
               cd /build
-              pyinstaller --onefile --name vnstat_exporter vnstat_exporter.py
+              /opt/python/cp311-cp311/bin/pyinstaller --onefile --name vnstat_exporter vnstat_exporter.py
             "
           mv dist/vnstat_exporter dist/vnstat_exporter-linux-${{ matrix.arch }}
 
