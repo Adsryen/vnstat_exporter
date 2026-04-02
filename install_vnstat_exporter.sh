@@ -8,11 +8,12 @@ CYAN='\033[0;36m'
 NC='\033[0m'
 
 GITHUB_REPO="Adsryen/vnstat_exporter"
-DEFAULT_VERSION="v1.0.4"
+DEFAULT_VERSION="latest"
 INSTALL_DIR="/usr/local/bin"
 BINARY_NAME="vnstat_exporter"
 SERVICE_FILE="/etc/systemd/system/vnstat_exporter.service"
 DEFAULT_PROXY="https://gh.we-together.club"
+FORCE_DOWNLOAD=0
 
 # 帮助信息
 usage() {
@@ -23,7 +24,8 @@ usage() {
     echo -e "  uninstall   卸载 vnstat_exporter"
     echo ""
     echo -e "选项:"
-    echo -e "  -h, --help  显示帮助信息"
+    echo -e "  --force-download  强制重新下载，忽略本地已有文件"
+    echo -e "  -h, --help        显示帮助信息"
     exit 0
 }
 
@@ -60,8 +62,8 @@ do_install() {
     fi
 
     # 优先使用本地已有文件
-    if [ -f "$FILE" ]; then
-        echo -e "${GREEN}找到本地文件 $FILE，跳过下载。${NC}"
+    if [ -f "$FILE" ] && [ "$FORCE_DOWNLOAD" = "0" ]; then
+        echo -e "${GREEN}找到本地文件 $FILE，跳过下载。如需重新下载请使用 --force-download${NC}"
     else
         # 询问是否使用代理（影响 API 和文件下载）
         printf "${CYAN}是否使用 GitHub 代理？(y/n)：${NC}"
@@ -184,9 +186,10 @@ do_uninstall() {
 COMMAND="install"
 for arg in "$@"; do
     case "$arg" in
-        install)   COMMAND="install" ;;
-        uninstall) COMMAND="uninstall" ;;
-        -h|--help) usage ;;
+        install)          COMMAND="install" ;;
+        uninstall)        COMMAND="uninstall" ;;
+        --force-download) FORCE_DOWNLOAD=1 ;;
+        -h|--help)        usage ;;
         *)
             echo -e "${RED}未知参数: $arg${NC}"
             usage
