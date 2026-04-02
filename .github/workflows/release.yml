@@ -21,16 +21,27 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 在 manylinux2014 容器内构建二进制 (${{ matrix.arch }})
+      - name: 在 CentOS 7 容器内构建二进制 (${{ matrix.arch }})
         run: |
           docker run --rm \
             -v "${{ github.workspace }}:/build" \
-            quay.io/pypa/manylinux2014_${{ matrix.arch }} \
+            centos:centos7.9.2009 \
             bash -c "
               set -e
-              /opt/python/cp311-cp311/bin/pip install pyinstaller prometheus-client
+              # CentOS 7 已 EOL，切换到 vault 归档源
+              sed -i \
+                -e 's|^mirrorlist=|#mirrorlist=|g' \
+                -e 's|^#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' \
+                /etc/yum.repos.d/CentOS-*.repo
+              yum install -y epel-release
+              sed -i \
+                -e 's|^metalink=|#metalink=|g' \
+                -e 's|^#baseurl=https://download.example/pub/epel|baseurl=https://archives.fedoraproject.org/pub/archive/epel|g' \
+                /etc/yum.repos.d/epel*.repo
+              yum install -y python3 python3-pip
+              pip3 install pyinstaller prometheus-client
               cd /build
-              /opt/python/cp311-cp311/bin/pyinstaller --onefile --name vnstat_exporter vnstat_exporter.py
+              pyinstaller --onefile --name vnstat_exporter vnstat_exporter.py
             "
           mv dist/vnstat_exporter dist/vnstat_exporter-linux-${{ matrix.arch }}
 
