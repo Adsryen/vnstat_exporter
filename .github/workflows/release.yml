@@ -1,0 +1,63 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Build ${{ matrix.arch }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            platform: linux/amd64
+            pyinstaller_target: x86_64-unknown-linux-gnu
+          - arch: arm64
+            platform: linux/arm64
+            pyinstaller_target: aarch64-unknown-linux-gnu
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 QEMU（跨架构支持）
+        uses: docker/setup-qemu-action@v3
+
+      - name: 构建二进制 (${{ matrix.arch }})
+        uses: docker/run-action@v1
+        with:
+          image: python:3.11-slim
+          platform: ${{ matrix.platform }}
+          run: |
+            pip install pyinstaller prometheus-client
+            pyinstaller --onefile --name vnstat_exporter vnstat_exporter.py
+            mv dist/vnstat_exporter dist/vnstat_exporter-linux-${{ matrix.arch }}
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: vnstat_exporter-linux-${{ matrix.arch }}
+          path: dist/vnstat_exporter-linux-${{ matrix.arch }}
+
+  release:
+    name: 发布 Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: 下载所有构建产物
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: 创建 Release 并上传二进制
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/vnstat_exporter-linux-*
+          generate_release_notes: true
