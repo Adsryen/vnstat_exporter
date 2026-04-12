@@ -36,7 +36,7 @@ VNStat Prometheus Exporter
 
 标签：
     interface - 网卡名称（如 eth0）
-    direction - 流量方向（rx：下行，tx：上行）
+    direction - 流量方向（rx：下行，tx：上行，total：上下行合计）
 """
 
 import subprocess
@@ -72,6 +72,13 @@ TRAFFIC_LIMIT = Gauge('vnstat_traffic_limit_bytes', 'Traffic limit in bytes for 
 TRAFFIC_TOP_DAILY = Gauge('vnstat_traffic_top_daily', 'Top daily traffic record', ['interface', 'direction'])
 DB_UPDATED = Gauge('vnstat_db_updated_timestamp', 'Timestamp of last vnstat database update', ['interface'])
 DB_CREATED = Gauge('vnstat_db_created_timestamp', 'Timestamp of vnstat database creation', ['interface'])
+
+
+def set_metric(metric, interface_name, rx, tx, **labels):
+    """同时写入 rx、tx 和 total 三种方向指标"""
+    metric.labels(interface=interface_name, direction='rx', **labels).set(rx)
+    metric.labels(interface=interface_name, direction='tx', **labels).set(tx)
+    metric.labels(interface=interface_name, direction='total', **labels).set(rx + tx)
 
 
 def get_billing_cycle_start(billing_day: int) -> date:
@@ -141,15 +148,13 @@ def update_metrics():
         fiveminute = traffic.get('fiveminute') or traffic.get('fiveminutes', [])
         if fiveminute:
             latest = fiveminute[-1]
-            TRAFFIC_5MIN.labels(interface=iface_name, direction='rx').set(latest.get('rx', 0))
-            TRAFFIC_5MIN.labels(interface=iface_name, direction='tx').set(latest.get('tx', 0))
+            set_metric(TRAFFIC_5MIN, iface_name, latest.get('rx', 0), latest.get('tx', 0))
 
         # 小时（2.x: hour，1.x: hours）
         hours = traffic.get('hour') or traffic.get('hours', [])
         if hours:
             latest = hours[-1]
-            TRAFFIC_HOURLY.labels(interface=iface_name, direction='rx').set(latest.get('rx', 0))
-            TRAFFIC_HOURLY.labels(interface=iface_name, direction='tx').set(latest.get('tx', 0))
+            set_metric(TRAFFIC_HOURLY, iface_name, latest.get('rx', 0), latest.get('tx', 0))
 
         # 日（2.x: day，1.x: days）
         days = traffic.get('day') or traffic.get('days', [])
@@ -157,27 +162,23 @@ def update_metrics():
             latest = days[-1]
             d = latest.get('date', {})
             date_str = f"{d.get('year', 0)}-{d.get('month', 0):02d}-{d.get('day', 0):02d}"
-            TRAFFIC_DAILY.labels(interface=iface_name, direction='rx', date=date_str).set(latest.get('rx', 0))
-            TRAFFIC_DAILY.labels(interface=iface_name, direction='tx', date=date_str).set(latest.get('tx', 0))
+            set_metric(TRAFFIC_DAILY, iface_name, latest.get('rx', 0), latest.get('tx', 0), date=date_str)
 
         # 自然月（2.x: month，1.x: months）
         months = traffic.get('month') or traffic.get('months', [])
         if months:
             latest = months[-1]
-            TRAFFIC_MONTHLY.labels(interface=iface_name, direction='rx').set(latest.get('rx', 0))
-            TRAFFIC_MONTHLY.labels(interface=iface_name, direction='tx').set(latest.get('tx', 0))
+            set_metric(TRAFFIC_MONTHLY, iface_name, latest.get('rx', 0), latest.get('tx', 0))
 
         # 年（2.x: year，1.x: years）
         years = traffic.get('year') or traffic.get('years', [])
         if years:
             latest = years[-1]
-            TRAFFIC_YEARLY.labels(interface=iface_name, direction='rx').set(latest.get('rx', 0))
-            TRAFFIC_YEARLY.labels(interface=iface_name, direction='tx').set(latest.get('tx', 0))
+            set_metric(TRAFFIC_YEARLY, iface_name, latest.get('rx', 0), latest.get('tx', 0))
 
         # 总计
         total = traffic.get('total', {})
-        TRAFFIC_TOTAL.labels(interface=iface_name, direction='rx').set(total.get('rx', 0))
-        TRAFFIC_TOTAL.labels(interface=iface_name, direction='tx').set(total.get('tx', 0))
+        set_metric(TRAFFIC_TOTAL, iface_name, total.get('rx', 0), total.get('tx', 0))
 
         # 计费周期累计（从 billing_start 到今天的日流量加总）
         if billing_start is not None:
@@ -192,16 +193,14 @@ def update_metrics():
                 if entry_date >= billing_start:
                     billing_rx += day_entry.get('rx', 0)
                     billing_tx += day_entry.get('tx', 0)
-            TRAFFIC_BILLING.labels(interface=iface_name, direction='rx').set(billing_rx)
-            TRAFFIC_BILLING.labels(interface=iface_name, direction='tx').set(billing_tx)
+            set_metric(TRAFFIC_BILLING, iface_name, billing_rx, billing_tx)
 
         # 历史单日峰值
         tops = traffic.get('top', [])
         if tops:
             max_rx = max((t.get('rx', 0) for t in tops), default=0)
             max_tx = max((t.get('tx', 0) for t in tops), default=0)
-            TRAFFIC_TOP_DAILY.labels(interface=iface_name, direction='rx').set(max_rx)
-            TRAFFIC_TOP_DAILY.labels(interface=iface_name, direction='tx').set(max_tx)
+            set_metric(TRAFFIC_TOP_DAILY, iface_name, max_rx, max_tx)
 
         # 数据库更新时间
         updated_ts = interface.get('updated', {}).get('timestamp')
