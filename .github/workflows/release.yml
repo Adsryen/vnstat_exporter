@@ -63,7 +63,9 @@ jobs:
 
   release:
     name: create release
-    needs: build
+    needs:
+      - build
+      - docker
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -72,6 +74,7 @@ jobs:
       - name: download artifacts
         uses: actions/download-artifact@v4
         with:
+          pattern: vnstat_exporter-linux-*
           path: dist
           merge-multiple: true
 
