@@ -1,0 +1,4 @@
+# 统一换行策略：文本入库一律 LF；Windows 脚本保持 CRLF（避免整文件 diff 噪音）
+* text=auto
+*.bat eol=crlf
+*.ps1 eol=crlf
